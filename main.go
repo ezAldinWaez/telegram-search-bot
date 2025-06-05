@@ -47,8 +47,11 @@ func main() {
 
 	// Start bot
 	log.Println("Starting Telegram Semantic Search Bot...")
-	log.Println("Phase 1: Basic bot + database functionality")
+	log.Println("Phase 2: Embedding generation with Ollama")
+	log.Printf("Embedding model: %s", cfg.EmbeddingModel)
+	log.Printf("Embedding API: %s", cfg.EmbeddingAPIURL)
 	log.Println("Use /start command to interact with the bot")
+	log.Println("Use /test command to verify embedding service")
 
 	if err := telegramBot.Start(); err != nil {
 		log.Fatalf("Bot failed: %v", err)

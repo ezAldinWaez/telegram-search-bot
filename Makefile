@@ -5,25 +5,29 @@ BINARY_NAME=telegram-search-bot
 MAIN_PATH=./main.go
 BUILD_DIR=./bin
 
+# Load database path from .env file (fallback to default)
+DB_PATH := $(shell grep '^DATABASE_PATH=' .env 2>/dev/null | cut -d'=' -f2 | tr -d '"' || echo "./messages.db")
+
 # Default target
 .PHONY: help
 help:
 	@echo "Available commands:"
-	@echo "  make run         - Run the bot in development mode"
+	@echo "  make run         - Run the bot (checks Ollama automatically)"
 	@echo "  make build       - Build the binary"
-	@echo "  make clean       - Clean build artifacts"
-	@echo "  make deps        - Download and tidy dependencies"
-	@echo "  make test        - Run tests"
+	@echo "  make setup       - Initial setup (deps + .env file)"
+	@echo "  make clean       - Clean build artifacts and database"
+	@echo "  make clean-db    - Clean only the database file"
 	@echo "  make fmt         - Format code"
-	@echo "  make lint        - Run linter (requires golangci-lint)"
-	@echo "  make check       - Run fmt, lint, and test"
-	@echo "  make setup       - Initial setup (deps + build)"
 
-# Development
+# Main commands
 .PHONY: run
 run: deps
-	@echo "Running bot in development mode..."
-	@echo "Make sure TELEGRAM_TOKEN is set in your environment"
+	@echo "🔍 Checking Ollama status..."
+	@curl -s http://localhost:11434/api/tags > /dev/null || (echo "❌ Ollama not running. Start with: ollama serve" && exit 1)
+	@ollama list 2>/dev/null | grep -q "all-minilm" || (echo "⚠️  Installing all-minilm model..." && ollama pull all-minilm)
+	@echo "✅ Ollama ready"
+	@echo "🤖 Starting bot..."
+	@echo "Make sure TELEGRAM_TOKEN is set in .env file"
 	go run $(MAIN_PATH)
 
 .PHONY: build
@@ -33,36 +37,8 @@ build: deps fmt
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
 	@echo "Binary created: $(BUILD_DIR)/$(BINARY_NAME)"
 
-.PHONY: deps
-deps:
-	@echo "Downloading dependencies..."
-	go mod download
-	go mod tidy
-
-# Code quality
-.PHONY: fmt
-fmt:
-	@echo "Formatting code..."
-	go fmt ./...
-
-.PHONY: lint
-lint:
-	@echo "Running linter..."
-	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest" && exit 1)
-	golangci-lint run
-
-.PHONY: test
-test:
-	@echo "Running tests..."
-	go test -v ./...
-
-.PHONY: check
-check: fmt lint test
-	@echo "All checks passed!"
-
-# Setup and cleanup
 .PHONY: setup
-setup: deps build
+setup: deps
 	@echo "Setting up .env file..."
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
@@ -75,58 +51,46 @@ setup: deps build
 	else \
 		echo ".env file already exists"; \
 	fi
-	@echo "Setup complete!"
+	@echo "Installing Ollama model..."
+	@which ollama > /dev/null || (echo "❌ Ollama not found. Install from: https://ollama.ai/download" && exit 1)
+	@curl -s http://localhost:11434/api/tags > /dev/null || (echo "❌ Ollama not running. Start with: ollama serve" && exit 1)
+	@ollama pull all-minilm
+	@echo "✅ Setup complete!"
 	@echo ""
 	@echo "Next steps:"
 	@echo "1. Edit .env file and set your TELEGRAM_TOKEN"
 	@echo "2. Run the bot: make run"
-	@echo "3. Add bot to a Telegram chat and send /start"
+
+.PHONY: deps
+deps:
+	@echo "Downloading dependencies..."
+	go mod download
+	go mod tidy
+
+.PHONY: fmt
+fmt:
+	@echo "Formatting code..."
+	go fmt ./...
 
 .PHONY: clean
 clean:
-	@echo "Cleaning build artifacts..."
+	@echo "Cleaning up..."
 	rm -rf $(BUILD_DIR)
-	rm -f messages.db
+	@if [ -f "$(DB_PATH)" ]; then \
+		echo "Removing database: $(DB_PATH)"; \
+		rm -f "$(DB_PATH)"; \
+	else \
+		echo "Database file not found: $(DB_PATH)"; \
+	fi
 	go clean
+	@echo "Cleaned build artifacts and database"
 
-# Database management
 .PHONY: clean-db
 clean-db:
-	@echo "Removing database file..."
-	rm -f messages.db
-
-.PHONY: backup-db
-backup-db:
-	@if [ -f messages.db ]; then \
-		cp messages.db messages_backup_$(shell date +%Y%m%d_%H%M%S).db; \
-		echo "Database backed up"; \
+	@if [ -f "$(DB_PATH)" ]; then \
+		echo "Removing database: $(DB_PATH)"; \
+		rm -f "$(DB_PATH)"; \
+		echo "Database cleaned"; \
 	else \
-		echo "No database file found"; \
+		echo "Database file not found: $(DB_PATH)"; \
 	fi
-
-# Development helpers
-.PHONY: dev
-dev: clean-db run
-
-.PHONY: logs
-logs:
-	@echo "Following bot logs (if running with systemd or docker)..."
-	@echo "For local development, logs appear in the terminal where you ran 'make run'"
-
-# Docker support (optional)
-.PHONY: docker-build
-docker-build:
-	@echo "Building Docker image..."
-	docker build -t $(BINARY_NAME) .
-
-.PHONY: docker-run
-docker-run:
-	@echo "Running in Docker..."
-	@echo "Make sure to set TELEGRAM_TOKEN environment variable"
-	docker run --rm -e TELEGRAM_TOKEN=$(TELEGRAM_TOKEN) $(BINARY_NAME)
-
-# Release
-.PHONY: release
-release: clean check build
-	@echo "Release build complete!"
-	@echo "Binary available at: $(BUILD_DIR)/$(BINARY_NAME)"

@@ -50,6 +50,8 @@ func (b *Bot) handleCommand(message *tgbotapi.Message) {
 		b.handleHelpCommand(message)
 	case "stats":
 		b.handleStatsCommand(message)
+	case "test":
+		b.handleTestCommand(message)
 	case "search":
 		// Placeholder for Phase 3
 		b.sendReply(message, "🔍 Search functionality will be added in Phase 3!")
@@ -63,14 +65,17 @@ func (b *Bot) handleCommand(message *tgbotapi.Message) {
 func (b *Bot) handleStartCommand(message *tgbotapi.Message) {
 	welcomeText := `🤖 *Semantic Search Bot*
 
-I'm now tracking messages in this chat and will soon be able to help you search through them semantically!
+I'm now tracking messages in this chat and generating semantic embeddings for each one!
 
 *Available commands:*
-• /help - Show this help message
-• /stats - Show message statistics
-• /search <query> - Search messages (coming in Phase 3)
+• /help - Show help message
+• /stats - Show message and embedding statistics
+• /test - Test embedding service connection
+• /search <query> - Search messages (Phase 3)
 
-Just keep chatting normally - I'll silently collect and index your messages for semantic search!`
+*Phase 2 Active:* I'm now generating embeddings for all messages using AI. This enables semantic search capabilities!
+
+Just keep chatting normally - I'll process and index your messages automatically! 🚀`
 
 	b.sendReply(message, welcomeText)
 }
@@ -80,16 +85,18 @@ func (b *Bot) handleHelpCommand(message *tgbotapi.Message) {
 
 *What I do:*
 • Track all messages in this chat
-• Store them for semantic search (coming soon)
-• Help you find relevant past conversations
+• Generate semantic embeddings for each message
+• Help you find relevant past conversations (Phase 3)
 
 *Commands:*
 • /start - Welcome message
 • /help - This help message  
-• /stats - Show how many messages I've stored
+• /stats - Show message and embedding statistics
+• /test - Test embedding service connection
 • /search <query> - Semantic search (Phase 3)
 
-*Privacy:* I only store messages from chats where I'm added. Messages are stored locally and used only for search functionality.`
+*Current Status:* Phase 2 - Embedding generation active
+*Privacy:* Messages stored locally, used only for search functionality.`
 
 	b.sendReply(message, helpText)
 }
@@ -102,15 +109,56 @@ func (b *Bot) handleStatsCommand(message *tgbotapi.Message) {
 		return
 	}
 
+	// Count messages with embeddings
+	countWithEmbeddings, err := b.db.GetStatsWithEmbeddings(message.Chat.ID)
+	if err != nil {
+		log.Printf("Error getting embedding stats: %v", err)
+		countWithEmbeddings = 0
+	}
+
 	statsText := fmt.Sprintf(`📊 *Chat Statistics*
 
 Messages stored: *%d*
+Messages with embeddings: *%d*
 Chat ID: %d
+Embedding model: %s
 Status: ✅ Active
 
-Ready for semantic search once Phase 3 is complete!`, count, message.Chat.ID)
+Ready for semantic search once Phase 3 is complete!`, count, countWithEmbeddings, message.Chat.ID, b.config.EmbeddingModel)
 
 	b.sendReply(message, statsText)
+}
+
+func (b *Bot) handleTestCommand(message *tgbotapi.Message) {
+	b.sendReply(message, "🧪 Testing embedding service...")
+
+	// Test embedding generation
+	testText := "This is a test message for embedding generation"
+	embedding, err := b.embedding.GetEmbedding(testText)
+	if err != nil {
+		errorMsg := fmt.Sprintf(`❌ *Embedding Test Failed*
+
+Error: %s
+
+*Troubleshooting:*
+• Make sure Ollama is running: `+"`ollama serve`"+`
+• Check if model is available: `+"`ollama pull %s`"+`
+• Verify API URL: %s`, err.Error(), b.config.EmbeddingModel, b.config.EmbeddingAPIURL)
+
+		b.sendReply(message, errorMsg)
+		return
+	}
+
+	successMsg := fmt.Sprintf(`✅ *Embedding Test Successful*
+
+Test text: "%s"
+Embedding dimensions: *%d*
+Model: %s
+API URL: %s
+
+Embedding service is working correctly!`, testText, len(embedding), b.config.EmbeddingModel, b.config.EmbeddingAPIURL)
+
+	b.sendReply(message, successMsg)
 }
 
 func (b *Bot) storeMessage(message *tgbotapi.Message) {
@@ -129,13 +177,30 @@ func (b *Bot) storeMessage(message *tgbotapi.Message) {
 		Username:  message.From.UserName,
 		Text:      cleanText,
 		Timestamp: time.Unix(int64(message.Date), 0),
-		// Embedding will be added in Phase 2
 	}
 
-	// Save to database
-	if err := b.db.SaveMessage(msg); err != nil {
-		log.Printf("Error saving message: %v", err)
-	}
+	// Generate embedding asynchronously
+	go func() {
+		embedding, err := b.embedding.GetEmbedding(cleanText)
+		if err != nil {
+			log.Printf("Failed to generate embedding for message: %v", err)
+			// Save message without embedding
+			if err := b.db.SaveMessage(msg); err != nil {
+				log.Printf("Error saving message without embedding: %v", err)
+			}
+			return
+		}
+
+		// Add embedding to message
+		msg.Embedding = embedding
+
+		// Save message with embedding
+		if err := b.db.SaveMessage(msg); err != nil {
+			log.Printf("Error saving message with embedding: %v", err)
+		} else {
+			log.Printf("✅ Saved message with embedding (%d dims) from %s", len(embedding), msg.Username)
+		}
+	}()
 }
 
 func (b *Bot) cleanText(text string) string {

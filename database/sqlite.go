@@ -172,6 +172,13 @@ func (db *DB) GetStats(chatID int64) (int, error) {
 	return count, err
 }
 
+func (db *DB) GetStatsWithEmbeddings(chatID int64) (int, error) {
+	query := `SELECT COUNT(*) FROM messages WHERE chat_id = ? AND embedding IS NOT NULL AND embedding != ''`
+	var count int
+	err := db.conn.QueryRow(query, chatID).Scan(&count)
+	return count, err
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a

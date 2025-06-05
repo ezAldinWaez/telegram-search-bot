@@ -1,15 +1,17 @@
-# Telegram Semantic Search Bot - Phase 1
+# Telegram Semantic Search Bot - Phase 2
 
-A Telegram bot that will eventually provide semantic search capabilities over chat messages. Currently in Phase 1: Basic bot + database functionality.
+A Telegram bot that provides semantic search capabilities over chat messages. Currently in Phase 2: Embedding generation with Ollama.
 
-## Features (Phase 1)
+## Features (Phase 2)
 
 -   ✅ Connect to Telegram and receive messages
 -   ✅ Store messages in SQLite database
 -   ✅ Basic text preprocessing and cleaning
--   ✅ Bot commands: `/start`, `/help`, `/stats`
+-   ✅ Bot commands: `/start`, `/help`, `/stats`, `/test`
 -   ✅ Message tracking and storage
--   🔄 Embedding generation (Phase 2)
+-   ✅ **Semantic embedding generation using Ollama**
+-   ✅ **Asynchronous embedding processing**
+-   ✅ **Embedding service health checks**
 -   🔄 Semantic search (Phase 3)
 
 ## Setup
@@ -18,6 +20,23 @@ A Telegram bot that will eventually provide semantic search capabilities over ch
 
 -   Go 1.21 or higher
 -   SQLite3 (included with go-sqlite3 driver)
+-   **Ollama** (for embedding generation)
+
+### 2. Setup Ollama
+
+```bash
+# Install Ollama (if not already installed)
+# Visit: https://ollama.ai/download
+
+# Start Ollama service
+ollama serve
+
+# Pull the embedding model (in another terminal)
+ollama pull all-minilm
+
+# Verify model is available
+ollama list
+```
 
 ### 2. Get Telegram Bot Token
 
@@ -72,17 +91,20 @@ EMBEDDING_MODEL=all-minilm:latest
 
 -   `/start` - Welcome message and setup
 -   `/help` - Show help information
--   `/stats` - Show message statistics for current chat
+-   `/stats` - Show message and embedding statistics
+-   `/test` - Test embedding service connection
 -   `/search <query>` - Placeholder (Phase 3)
 
-### 3. Message Tracking
+### 3. Message Processing
 
 The bot will automatically:
 
 -   Track all text messages in chats where it's added
 -   Store messages with metadata (user, timestamp, chat)
+-   **Generate semantic embeddings for each message**
+-   **Process embeddings asynchronously (non-blocking)**
 -   Clean and preprocess text
--   Log activity (check console output)
+-   Log activity and embedding status
 
 ## Database Schema
 
@@ -98,18 +120,33 @@ CREATE TABLE messages (
 );
 ```
 
-## Testing Phase 1
+## Testing Phase 2
 
-1. **Message Storage**: Send various messages and check `/stats`
-2. **Commands**: Test all available commands
-3. **Multiple Chats**: Add bot to different groups/chats
-4. **Database**: Check `messages.db` file is created and growing
+1. **Setup Ollama**: Ensure `ollama serve` is running and `all-minilm` model is pulled
+2. **Test Embedding Service**: Use `/test` command to verify connection
+3. **Message Processing**: Send messages and check console for embedding confirmations
+4. **Statistics**: Use `/stats` to see embedding generation progress
+5. **Multiple Chats**: Test embedding generation across different groups/chats
+
+### Troubleshooting Embeddings
+
+-   **"Connection failed"**: Make sure `ollama serve` is running
+-   **"Model not found"**: Run `ollama pull all-minilm`
+-   **Slow processing**: Embeddings are generated asynchronously - check logs
+-   **Missing embeddings**: Some messages may be saved without embeddings if API fails
 
 ## What's Next
 
--   **Phase 2**: Add embedding generation with Ollama
 -   **Phase 3**: Implement semantic search functionality
 -   **Phase 4**: Testing and refinement
+
+## New in Phase 2
+
+-   **Ollama Integration**: Automatic embedding generation for all messages
+-   **Async Processing**: Non-blocking embedding generation
+-   **Health Checks**: Connection testing and model verification
+-   **Enhanced Stats**: Track messages with/without embeddings
+-   **Error Handling**: Graceful fallback when embedding service unavailable
 
 ## Troubleshooting
 
