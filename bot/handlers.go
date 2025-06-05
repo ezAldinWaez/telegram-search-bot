@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"telegram-semantic-search/database"
+	"telegram-semantic-search/search"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -42,6 +43,7 @@ func (b *Bot) handleMessage(message *tgbotapi.Message) {
 
 func (b *Bot) handleCommand(message *tgbotapi.Message) {
 	command := message.Command()
+	args := message.CommandArguments()
 
 	switch command {
 	case "start":
@@ -53,8 +55,7 @@ func (b *Bot) handleCommand(message *tgbotapi.Message) {
 	case "test":
 		b.handleTestCommand(message)
 	case "search":
-		// Placeholder for Phase 3
-		b.sendReply(message, "🔍 Search functionality will be added in Phase 3!")
+		b.handleSearchCommand(message, args)
 	default:
 		b.sendReply(message, fmt.Sprintf("Unknown command: /%s", command))
 	}
@@ -65,17 +66,22 @@ func (b *Bot) handleCommand(message *tgbotapi.Message) {
 func (b *Bot) handleStartCommand(message *tgbotapi.Message) {
 	welcomeText := `🤖 *Semantic Search Bot*
 
-I'm now tracking messages in this chat and generating semantic embeddings for each one!
+I'm now fully operational with semantic search capabilities! 🚀
 
 *Available commands:*
 • /help - Show help message
 • /stats - Show message and embedding statistics
 • /test - Test embedding service connection
-• /search <query> - Search messages (Phase 3)
+• /search <query> - **Search messages semantically**
 
-*Phase 2 Active:* I'm now generating embeddings for all messages using AI. This enables semantic search capabilities!
+*Phase 3 Complete:* You can now search through chat history using natural language!
 
-Just keep chatting normally - I'll process and index your messages automatically! 🚀`
+Examples:
+• ` + "`/search meeting tomorrow`" + `
+• ` + "`/search funny story`" + `
+• ` + "`/search project deadline`" + `
+
+Just keep chatting - I'll continue indexing messages for better search results! 🎯`
 
 	b.sendReply(message, welcomeText)
 }
@@ -86,16 +92,24 @@ func (b *Bot) handleHelpCommand(message *tgbotapi.Message) {
 *What I do:*
 • Track all messages in this chat
 • Generate semantic embeddings for each message
-• Help you find relevant past conversations (Phase 3)
+• **Enable semantic search through chat history**
 
 *Commands:*
 • /start - Welcome message
 • /help - This help message  
 • /stats - Show message and embedding statistics
 • /test - Test embedding service connection
-• /search <query> - Semantic search (Phase 3)
+• /search <query> - **Search messages by meaning, not just keywords**
 
-*Current Status:* Phase 2 - Embedding generation active
+*How search works:*
+I understand context and meaning, not just exact word matches!
+
+*Examples:*
+• ` + "`/search meeting schedule`" + ` - finds discussions about meetings
+• ` + "`/search python code`" + ` - finds programming conversations  
+• ` + "`/search weekend plans`" + ` - finds casual planning discussions
+
+*Current Status:* Phase 3 - **Fully operational semantic search**
 *Privacy:* Messages stored locally, used only for search functionality.`
 
 	b.sendReply(message, helpText)
@@ -120,11 +134,12 @@ func (b *Bot) handleStatsCommand(message *tgbotapi.Message) {
 
 Messages stored: *%d*
 Messages with embeddings: *%d*
+Search readiness: *%.1f%%*
 Chat ID: %d
 Embedding model: %s
-Status: ✅ Active
+Status: ✅ **Semantic search active**
 
-Ready for semantic search once Phase 3 is complete!`, count, countWithEmbeddings, message.Chat.ID, b.config.EmbeddingModel)
+Ready to search! Try: `+"`/search your query`"+``, count, countWithEmbeddings, float64(countWithEmbeddings)/float64(max(count, 1))*100, message.Chat.ID, b.config.EmbeddingModel)
 
 	b.sendReply(message, statsText)
 }
@@ -159,6 +174,91 @@ API URL: %s
 Embedding service is working correctly!`, testText, len(embedding), b.config.EmbeddingModel, b.config.EmbeddingAPIURL)
 
 	b.sendReply(message, successMsg)
+}
+
+func (b *Bot) handleSearchCommand(message *tgbotapi.Message, query string) {
+	if strings.TrimSpace(query) == "" {
+		b.sendReply(message, `🔍 *Semantic Search*
+
+Usage: `+"`/search <your query>`"+`
+
+Examples:
+• `+"`/search python programming`"+`
+• `+"`/search meeting schedule`"+`
+• `+"`/search funny joke`"+`
+
+I'll find the most relevant messages based on semantic similarity!`)
+		return
+	}
+
+	// Show searching indicator
+	b.sendReply(message, fmt.Sprintf("🔍 Searching for: *%s*...", query))
+
+	// Perform search
+	results, err := b.search.Search(query, message.Chat.ID)
+	if err != nil {
+		log.Printf("Search error: %v", err)
+		b.sendReply(message, fmt.Sprintf("❌ Search failed: %s", err.Error()))
+		return
+	}
+
+	// Handle no results
+	if len(results) == 0 {
+		totalMessages, withEmbeddings, _ := b.search.SearchStats(message.Chat.ID)
+
+		noResultsMsg := fmt.Sprintf(`🤷‍♂️ *No Results Found*
+
+Query: "%s"
+
+*Possible reasons:*
+• No similar messages found (similarity too low)
+• Not enough messages with embeddings yet
+• Try different search terms
+
+*Chat Stats:*
+• Total messages: %d
+• Messages with embeddings: %d
+
+Try searching for topics you know were discussed!`, query, totalMessages, withEmbeddings)
+
+		b.sendReply(message, noResultsMsg)
+		return
+	}
+
+	// Format and send results
+	resultMsg := b.formatSearchResults(query, results)
+	b.sendReply(message, resultMsg)
+
+	log.Printf("Search completed: query='%s', results=%d, chat=%d", query, len(results), message.Chat.ID)
+}
+
+func (b *Bot) formatSearchResults(query string, results []search.SearchResult) string {
+	var msg strings.Builder
+
+	msg.WriteString(fmt.Sprintf("🎯 *Search Results for:* \"%s\"\n\n", query))
+
+	for _, result := range results {
+		// Format timestamp
+		timeStr := result.Message.Timestamp.Format("Jan 2, 15:04")
+
+		// Truncate long messages
+		text := result.Message.Text
+		if len(text) > 200 {
+			text = text[:200] + "..."
+		}
+
+		// Format similarity percentage
+		similarity := fmt.Sprintf("%.1f%%", result.Similarity*100)
+
+		msg.WriteString(fmt.Sprintf("**%d.** *%s* (%s similarity)\n",
+			result.Rank, similarity, timeStr))
+		msg.WriteString(fmt.Sprintf("👤 %s\n", result.Message.Username))
+		msg.WriteString(fmt.Sprintf("💬 %s\n\n", text))
+	}
+
+	msg.WriteString("_💡 Results ranked by semantic similarity_")
+
+	return msg.String()
 }
 
 func (b *Bot) storeMessage(message *tgbotapi.Message) {

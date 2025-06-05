@@ -179,6 +179,42 @@ func (db *DB) GetStatsWithEmbeddings(chatID int64) (int, error) {
 	return count, err
 }
 
+func (db *DB) GetMessagesWithEmbeddings(chatID int64) ([]Message, error) {
+	query := `
+	SELECT id, chat_id, user_id, username, text, timestamp, embedding
+	FROM messages
+	WHERE chat_id = ? AND embedding IS NOT NULL AND embedding != ''
+	ORDER BY timestamp DESC
+	`
+
+	rows, err := db.conn.Query(query, chatID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query messages with embeddings: %w", err)
+	}
+	defer rows.Close()
+
+	var messages []Message
+	for rows.Next() {
+		var msg Message
+		var embeddingJSON string
+
+		err := rows.Scan(&msg.ID, &msg.ChatID, &msg.UserID, &msg.Username, &msg.Text, &msg.Timestamp, &embeddingJSON)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan message: %w", err)
+		}
+
+		// Parse embedding JSON
+		if err := json.Unmarshal([]byte(embeddingJSON), &msg.Embedding); err != nil {
+			log.Printf("Failed to unmarshal embedding for message %d: %v", msg.ID, err)
+			continue // Skip messages with invalid embeddings
+		}
+
+		messages = append(messages, msg)
+	}
+
+	return messages, nil
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a

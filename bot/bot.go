@@ -6,6 +6,7 @@ import (
 	"telegram-semantic-search/config"
 	"telegram-semantic-search/database"
 	"telegram-semantic-search/embedding"
+	"telegram-semantic-search/search"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -15,6 +16,7 @@ type Bot struct {
 	db        *database.DB
 	config    *config.Config
 	embedding *embedding.Client
+	search    *search.Engine
 }
 
 func NewBot(cfg *config.Config, db *database.DB) (*Bot, error) {
@@ -28,6 +30,9 @@ func NewBot(cfg *config.Config, db *database.DB) (*Bot, error) {
 
 	// Initialize embedding client
 	embeddingClient := embedding.NewClient(cfg.EmbeddingAPIURL, cfg.EmbeddingModel)
+
+	// Initialize search engine
+	searchEngine := search.NewEngine(db, embeddingClient, cfg.MaxResults)
 
 	// Test embedding connection (non-blocking)
 	go func() {
@@ -45,6 +50,7 @@ func NewBot(cfg *config.Config, db *database.DB) (*Bot, error) {
 		db:        db,
 		config:    cfg,
 		embedding: embeddingClient,
+		search:    searchEngine,
 	}, nil
 }
 
