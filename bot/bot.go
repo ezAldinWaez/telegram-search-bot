@@ -3,10 +3,10 @@ package bot
 import (
 	"fmt"
 	"log"
-	"telegram-semantic-search/config"
-	"telegram-semantic-search/database"
-	"telegram-semantic-search/embedding"
-	"telegram-semantic-search/search"
+	"semantic-search-bot/config"
+	"semantic-search-bot/database"
+	"semantic-search-bot/embedding"
+	"semantic-search-bot/search"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"

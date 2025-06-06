@@ -1,7 +1,7 @@
-# Telegram Semantic Search Bot Makefile
+# Semantic Search Bot Makefile
 
 # Variables
-BINARY_NAME=telegram-search-bot
+BINARY_NAME=semantic-search-bot
 MAIN_PATH=./main.go
 BUILD_DIR=./bin
 

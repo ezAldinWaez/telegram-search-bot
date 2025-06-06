@@ -3,10 +3,10 @@ package search
 import (
 	"fmt"
 	"math"
+	"semantic-search-bot/database"
+	"semantic-search-bot/embedding"
 	"sort"
 	"strings"
-	"telegram-semantic-search/database"
-	"telegram-semantic-search/embedding"
 )
 
 type Engine struct {

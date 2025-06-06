@@ -36,7 +36,7 @@ An intelligent Telegram bot that enables semantic search through chat history us
 ```bash
 # 1. Clone and setup project
 git clone <repository>
-cd telegram-semantic-search
+cd semantic-search-bot
 make setup
 
 # 2. Install and start Ollama
@@ -107,21 +107,21 @@ make clean-db    # Clean only database (fresh start)
 ### Project Structure
 
 ```
-telegram-semantic-search/
-├── main.go                 # Application entry point
-├── config/                 # Configuration management
+semantic-search-bot/
+├── main.go                # Application entry point
+├── config/                # Configuration management
 │   ├── config.go          # Environment and .env handling
 │   └── config_test.go     # Configuration tests
-├── bot/                    # Telegram bot logic
+├── bot/                   # Telegram bot logic
 │   ├── bot.go             # Bot initialization and lifecycle
 │   ├── handlers.go        # Message and command handlers
 │   └── performance.go     # Performance monitoring
-├── database/               # Data persistence
+├── database/              # Data persistence
 │   ├── models.go          # Data models and structures
 │   └── sqlite.go          # SQLite operations
-├── embedding/              # AI embedding service
+├── embedding/             # AI embedding service
 │   └── client.go          # Ollama API client
-├── search/                 # Semantic search engine
+├── search/                # Semantic search engine
 │   ├── engine.go          # Core search algorithms
 │   └── engine_test.go     # Search engine tests
 ├── .env.example           # Environment variables template
@@ -212,7 +212,7 @@ curl http://localhost:11434/api/tags
 # Check performance metrics
 /perf
 # Monitor system resources
-top -p $(pgrep telegram-search)
+top -p $(pgrep semantic-search-bot)
 ```
 
 **Ollama connection issues**

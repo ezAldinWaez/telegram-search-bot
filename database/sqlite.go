@@ -36,7 +36,7 @@ func (db *DB) initTables() error {
 		username TEXT,
 		text TEXT NOT NULL,
 		timestamp DATETIME NOT NULL,
-		embedding TEXT -- JSON array of floats (will be used in Phase 2)
+		embedding TEXT -- JSON array of floats
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_chat_id ON messages(chat_id);
@@ -48,7 +48,7 @@ func (db *DB) initTables() error {
 }
 
 func (db *DB) SaveMessage(msg Message) error {
-	// Convert embedding to JSON string (for Phase 2)
+	// Convert embedding to JSON string
 	var embeddingJSON string
 	if msg.Embedding != nil {
 		embeddingBytes, err := json.Marshal(msg.Embedding)
@@ -96,7 +96,7 @@ func (db *DB) GetMessages(chatID int64) ([]Message, error) {
 			return nil, fmt.Errorf("failed to scan message: %w", err)
 		}
 
-		// Parse embedding JSON (for Phase 2)
+		// Parse embedding JSON
 		if embeddingJSON.Valid && embeddingJSON.String != "" {
 			if err := json.Unmarshal([]byte(embeddingJSON.String), &msg.Embedding); err != nil {
 				log.Printf("Failed to unmarshal embedding for message %d: %v", msg.ID, err)
@@ -148,7 +148,7 @@ func (db *DB) GetMessagesByIDs(ids []int64) ([]Message, error) {
 			return nil, fmt.Errorf("failed to scan message: %w", err)
 		}
 
-		// Parse embedding JSON (for Phase 2)
+		// Parse embedding JSON
 		if embeddingJSON.Valid && embeddingJSON.String != "" {
 			if err := json.Unmarshal([]byte(embeddingJSON.String), &msg.Embedding); err != nil {
 				log.Printf("Failed to unmarshal embedding for message %d: %v", msg.ID, err)

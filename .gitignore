@@ -1,4 +1,4 @@
-# Telegram Semantic Search Bot - Git Ignore File
+# Semantic Search Bot - Git Ignore File
 
 # Binaries for programs and plugins
 *.exe
@@ -7,7 +7,7 @@
 *.so
 *.dylib
 /bin/
-telegram-search-bot
+semantic-search-bot
 
 # Test binary, built with `go test -c`
 *.test

@@ -4,10 +4,10 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"semantic-search-bot/bot"
+	"semantic-search-bot/config"
+	"semantic-search-bot/database"
 	"syscall"
-	"telegram-semantic-search/bot"
-	"telegram-semantic-search/config"
-	"telegram-semantic-search/database"
 )
 
 func main() {
@@ -46,8 +46,7 @@ func main() {
 	}()
 
 	// Start bot
-	log.Println("Starting Telegram Semantic Search Bot...")
-	log.Println("Phase 3: Semantic search fully operational! 🎯")
+	log.Println("Starting Semantic Search Bot...")
 	log.Printf("Embedding model: %s", cfg.EmbeddingModel)
 	log.Printf("Embedding API: %s", cfg.EmbeddingAPIURL)
 	log.Printf("Max search results: %d", cfg.MaxResults)

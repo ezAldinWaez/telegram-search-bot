@@ -1,4 +1,4 @@
-module telegram-semantic-search
+module semantic-search-bot
 
 go 1.21
 
