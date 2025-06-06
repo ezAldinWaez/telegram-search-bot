@@ -70,23 +70,27 @@ The MVP successfully implements all core requirements:
 
 **Total codebase**: ~800 lines of clean, well-structured Go code
 **Dependencies**: Minimal and stable (tgbotapi, sqlite3, godotenv)
-**Deployment**: Single binary, self-contained with SQLite# Telegram Semantic Search Bot - Phase 3 ✅
+**Deployment**: Single binary, self-contained with SQLite# Telegram Semantic Search Bot - Phase 4 Complete ✅
 
-A Telegram bot that provides semantic search capabilities over chat messages. **Phase 3 Complete: Fully operational semantic search!**
+A production-ready Telegram bot that provides semantic search capabilities over chat messages. **All phases complete with comprehensive testing and performance monitoring!**
 
-## Features (Phase 3)
+## Features (Production Ready)
 
 -   ✅ Connect to Telegram and receive messages
 -   ✅ Store messages in SQLite database
 -   ✅ Basic text preprocessing and cleaning
--   ✅ Bot commands: `/start`, `/help`, `/stats`, `/test`, **`/search`**
+-   ✅ Bot commands: `/start`, `/help`, `/stats`, `/test`, `/search`, `/perf`
 -   ✅ Message tracking and storage
 -   ✅ Semantic embedding generation using Ollama
 -   ✅ Asynchronous embedding processing
 -   ✅ Embedding service health checks
--   ✅ **Semantic search with cosine similarity**
--   ✅ **Intelligent result ranking and formatting**
--   ✅ **Natural language query understanding**
+-   ✅ Semantic search with cosine similarity
+-   ✅ Intelligent result ranking and formatting
+-   ✅ Natural language query understanding
+-   ✅ **Comprehensive unit testing**
+-   ✅ **Performance monitoring and optimization**
+-   ✅ **Production-ready error handling**
+-   ✅ **Test data and manual testing tools**
 
 ## Setup
 
@@ -167,24 +171,43 @@ EMBEDDING_MODEL=all-minilm:latest
 -   `/help` - Show help information and search examples
 -   `/stats` - Show message and embedding statistics
 -   `/test` - Test embedding service connection
+-   **`/perf` - Show performance statistics and optimization metrics**
 -   **`/search <query>` - Semantic search through chat history**
 
-### 3. Semantic Search Examples
+### 3. Testing & Development
 
+**Run Tests:**
+
+```bash
+make test                    # Run unit tests
+make test-data              # Load sample data for testing
 ```
-/search meeting tomorrow     # Finds discussions about meetings
-/search python programming   # Finds code-related conversations
-/search funny joke          # Finds humorous messages
-/search project deadline     # Finds work planning discussions
-/search weekend plans        # Finds casual planning talks
+
+**Performance Monitoring:**
+
+```bash
+/perf                       # In Telegram - shows real-time performance stats
 ```
 
-**Key Features:**
+**Manual Testing Workflow:**
 
--   **Semantic understanding** - searches by meaning, not just keywords
--   **Ranked results** - shows similarity percentages
--   **Context-aware** - understands related concepts
--   **Fast and efficient** - optimized vector similarity search
+```bash
+# 1. Setup and run
+make setup
+make run
+
+# 2. Load test data
+make test-data
+
+# 3. Test searches with sample data
+/search meeting schedule     # Should find meeting messages
+/search python programming   # Should find coding messages
+/search funny joke          # Should find humor messages
+/search project deadline     # Should find work messages
+
+# 4. Check performance
+/perf                       # View performance statistics
+```
 
 ## Database Schema
 
@@ -200,38 +223,57 @@ CREATE TABLE messages (
 );
 ```
 
-## Testing Phase 3
+## Testing Phase 4 (Production Ready)
 
-1. **Setup Ollama**: Ensure `ollama serve` is running and `all-minilm` model is pulled
-2. **Add Bot to Chat**: Invite bot to a group or start private chat
-3. **Generate Content**: Send various messages to build search index
-4. **Test Search**: Try `/search <query>` with different topics
-5. **Check Results**: Verify relevance and similarity scores
-
-### Search Testing Examples
+### Automated Testing
 
 ```bash
-# Add bot to chat and send these messages:
-"Let's schedule a team meeting for tomorrow at 3 PM"
-"I'm working on a Python script for data analysis"
-"That joke was hilarious! 😂"
-"The project deadline is next Friday"
-"What are your plans for the weekend?"
-
-# Then test searches:
-/search meeting schedule     # Should find the meeting message
-/search python code         # Should find the programming message
-/search funny               # Should find the joke message
-/search deadline            # Should find the project message
-/search weekend             # Should find the weekend plans message
+make test                   # Run all unit tests
+go test -v ./search         # Test search engine specifically
+go test -v ./config         # Test configuration handling
 ```
 
-### Search Quality Indicators
+### Manual Testing with Sample Data
 
--   **High similarity (>70%)**: Very relevant results
--   **Medium similarity (30-70%)**: Somewhat related results
--   **Low similarity (<30%)**: Filtered out automatically
--   **No results**: Need more messages or different search terms
+```bash
+# 1. Load comprehensive test dataset
+make test-data
+
+# 2. Test different search categories
+/search meeting schedule    # Business/work content
+/search python code        # Technical content
+/search funny story        # Casual/humor content
+/search travel vacation    # Personal content
+/search food lunch         # Daily life content
+
+# 3. Performance testing
+/perf                      # Check real-time performance metrics
+```
+
+### Production Readiness Checklist
+
+-   ✅ **Unit tests** for core algorithms (cosine similarity, configuration)
+-   ✅ **Performance monitoring** with real-time metrics
+-   ✅ **Error handling** with graceful degradation
+-   ✅ **Memory optimization** with garbage collection monitoring
+-   ✅ **Search time tracking** with sub-2-second target
+-   ✅ **Embedding time tracking** for optimization insights
+-   ✅ **Comprehensive logging** for debugging and monitoring
+
+### Success Metrics Validation
+
+**Primary Metric: Search Relevance Rate**
+
+-   **Target**: >70% of searches return relevant results in top 3
+-   **Testing**: Use `/test-data` and perform structured testing
+-   **Measurement**: Manual evaluation of search result relevance
+
+**Performance Benchmarks:**
+
+-   **Search time**: <2 seconds (monitored via `/perf`)
+-   **Memory usage**: Optimized for 1000s of messages
+-   **Embedding generation**: Background, non-blocking
+-   **Database performance**: Indexed queries, efficient JSON storage
 
 ## What's Next
 

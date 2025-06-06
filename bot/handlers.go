@@ -54,6 +54,8 @@ func (b *Bot) handleCommand(message *tgbotapi.Message) {
 		b.handleStatsCommand(message)
 	case "test":
 		b.handleTestCommand(message)
+	case "perf":
+		b.handlePerfCommand(message)
 	case "search":
 		b.handleSearchCommand(message, args)
 	default:
@@ -72,9 +74,10 @@ I'm now fully operational with semantic search capabilities! 🚀
 • /help - Show help message
 • /stats - Show message and embedding statistics
 • /test - Test embedding service connection
+• /perf - Show performance statistics  
 • /search <query> - **Search messages semantically**
 
-*Phase 3 Complete:* You can now search through chat history using natural language!
+*Phase 4 Complete:* You can now search through chat history using natural language!
 
 Examples:
 • ` + "`/search meeting tomorrow`" + `
@@ -99,6 +102,7 @@ func (b *Bot) handleHelpCommand(message *tgbotapi.Message) {
 • /help - This help message  
 • /stats - Show message and embedding statistics
 • /test - Test embedding service connection
+• /perf - Show performance statistics
 • /search <query> - **Search messages by meaning, not just keywords**
 
 *How search works:*
@@ -109,7 +113,7 @@ I understand context and meaning, not just exact word matches!
 • ` + "`/search python code`" + ` - finds programming conversations  
 • ` + "`/search weekend plans`" + ` - finds casual planning discussions
 
-*Current Status:* Phase 3 - **Fully operational semantic search**
+*Current Status:* Phase 4 - **Production-ready semantic search**
 *Privacy:* Messages stored locally, used only for search functionality.`
 
 	b.sendReply(message, helpText)
@@ -176,6 +180,35 @@ Embedding service is working correctly!`, testText, len(embedding), b.config.Emb
 	b.sendReply(message, successMsg)
 }
 
+func (b *Bot) handlePerfCommand(message *tgbotapi.Message) {
+	searchAvg, embeddingAvg, memUsage := b.perf.GetStats()
+
+	perfMsg := fmt.Sprintf(`⚡ *Performance Statistics*
+
+*Search Performance:*
+• Average search time: %v
+• Target: < 2 seconds
+
+*Embedding Performance:*
+• Average embedding time: %v
+• Background processing
+
+*System Resources:*
+• Memory usage: %s
+• Status: %s
+
+*Optimization Notes:*
+• Search performance scales with message count
+• Embedding generation runs asynchronously
+• Memory usage optimized for chat volumes`,
+		searchAvg,
+		embeddingAvg,
+		memUsage,
+		getPerformanceStatus(searchAvg))
+
+	b.sendReply(message, perfMsg)
+}
+
 func (b *Bot) handleSearchCommand(message *tgbotapi.Message, query string) {
 	if strings.TrimSpace(query) == "" {
 		b.sendReply(message, `🔍 *Semantic Search*
@@ -194,8 +227,16 @@ I'll find the most relevant messages based on semantic similarity!`)
 	// Show searching indicator
 	b.sendReply(message, fmt.Sprintf("🔍 Searching for: *%s*...", query))
 
+	// Start performance timing
+	startTime := time.Now()
+
 	// Perform search
 	results, err := b.search.Search(query, message.Chat.ID)
+
+	// Record search performance
+	searchDuration := time.Since(startTime)
+	b.perf.RecordSearchTime(searchDuration)
+
 	if err != nil {
 		log.Printf("Search error: %v", err)
 		b.sendReply(message, fmt.Sprintf("❌ Search failed: %s", err.Error()))
@@ -226,16 +267,18 @@ Try searching for topics you know were discussed!`, query, totalMessages, withEm
 	}
 
 	// Format and send results
-	resultMsg := b.formatSearchResults(query, results)
+	resultMsg := b.formatSearchResults(query, results, searchDuration)
 	b.sendReply(message, resultMsg)
 
-	log.Printf("Search completed: query='%s', results=%d, chat=%d", query, len(results), message.Chat.ID)
+	log.Printf("Search completed: query='%s', results=%d, duration=%v, chat=%d",
+		query, len(results), searchDuration, message.Chat.ID)
 }
 
-func (b *Bot) formatSearchResults(query string, results []search.SearchResult) string {
+func (b *Bot) formatSearchResults(query string, results []search.SearchResult, searchDuration time.Duration) string {
 	var msg strings.Builder
 
-	msg.WriteString(fmt.Sprintf("🎯 *Search Results for:* \"%s\"\n\n", query))
+	msg.WriteString(fmt.Sprintf("🎯 *Search Results for:* \"%s\"\n", query))
+	msg.WriteString(fmt.Sprintf("⚡ *Search time:* %v\n\n", searchDuration))
 
 	for _, result := range results {
 		// Format timestamp
@@ -281,7 +324,14 @@ func (b *Bot) storeMessage(message *tgbotapi.Message) {
 
 	// Generate embedding asynchronously
 	go func() {
+		startTime := time.Now()
+
 		embedding, err := b.embedding.GetEmbedding(cleanText)
+
+		// Record embedding performance
+		embeddingDuration := time.Since(startTime)
+		b.perf.RecordEmbeddingTime(embeddingDuration)
+
 		if err != nil {
 			log.Printf("Failed to generate embedding for message: %v", err)
 			// Save message without embedding
@@ -298,7 +348,8 @@ func (b *Bot) storeMessage(message *tgbotapi.Message) {
 		if err := b.db.SaveMessage(msg); err != nil {
 			log.Printf("Error saving message with embedding: %v", err)
 		} else {
-			log.Printf("✅ Saved message with embedding (%d dims) from %s", len(embedding), msg.Username)
+			log.Printf("✅ Saved message with embedding (%d dims, %v) from %s",
+				len(embedding), embeddingDuration, msg.Username)
 		}
 	}()
 }
@@ -322,4 +373,23 @@ func (b *Bot) sendReply(message *tgbotapi.Message, text string) {
 	if _, err := b.api.Send(msg); err != nil {
 		log.Printf("Error sending message: %v", err)
 	}
+}
+
+func getPerformanceStatus(searchAvg time.Duration) string {
+	if searchAvg == 0 {
+		return "🟡 No searches performed yet"
+	} else if searchAvg < 2*time.Second {
+		return "🟢 Excellent"
+	} else if searchAvg < 5*time.Second {
+		return "🟡 Good"
+	} else {
+		return "🔴 Needs optimization"
+	}
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

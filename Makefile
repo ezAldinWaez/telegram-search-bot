@@ -15,6 +15,7 @@ help:
 	@echo "  make run         - Run the bot (checks Ollama automatically)"
 	@echo "  make build       - Build the binary"
 	@echo "  make setup       - Initial setup (deps + .env file)"
+	@echo "  make test        - Run tests"
 	@echo "  make clean       - Clean build artifacts and database"
 	@echo "  make clean-db    - Clean only the database file"
 	@echo "  make fmt         - Format code"
@@ -71,6 +72,11 @@ deps:
 fmt:
 	@echo "Formatting code..."
 	go fmt ./...
+
+.PHONY: test
+test:
+	@echo "Running tests..."
+	go test -v ./...
 
 .PHONY: clean
 clean:
