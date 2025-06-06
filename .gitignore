@@ -1,3 +1,5 @@
+# Telegram Semantic Search Bot - Git Ignore File
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -5,6 +7,7 @@
 *.so
 *.dylib
 /bin/
+telegram-search-bot
 
 # Test binary, built with `go test -c`
 *.test
@@ -12,13 +15,14 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Dependency directories
+vendor/
 
 # Go workspace file
 go.work
+go.work.sum
 
-# Environment variables
+# Environment variables (contains sensitive tokens)
 .env
 
 # Database files
@@ -29,6 +33,7 @@ go.work
 
 # Backup files
 *_backup_*.db
+*.backup
 
 # IDE files
 .vscode/
@@ -36,6 +41,7 @@ go.work
 *.swp
 *.swo
 *~
+.vim/
 
 # OS generated files
 .DS_Store
@@ -48,3 +54,25 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp
+
+# Coverage reports
+coverage.html
+coverage.out
+
+# Air live reload tool
+.air.toml
+tmp/
+
+# Configuration backups
+.env.backup
+.env.local
+.env.production
+
+# Documentation build files
+docs/build/
